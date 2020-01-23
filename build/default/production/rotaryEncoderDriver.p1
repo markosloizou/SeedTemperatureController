@@ -1,0 +1,137 @@
+Version 4.0 HI-TECH Software Intermediate Code
+"11 ./rotaryEncoderDriver.h
+[; ;./rotaryEncoderDriver.h: 11: int previousSwitchState = 0;
+[v _previousSwitchState `i ~T0 @X0 1 e ]
+[i _previousSwitchState
+-> 0 `i
+]
+"12
+[; ;./rotaryEncoderDriver.h: 12: int previousA1State = 0;
+[v _previousA1State `i ~T0 @X0 1 e ]
+[i _previousA1State
+-> 0 `i
+]
+"13
+[; ;./rotaryEncoderDriver.h: 13: int previousC1State = 1;
+[v _previousC1State `i ~T0 @X0 1 e ]
+[i _previousC1State
+-> 1 `i
+]
+"3 rotaryEncoderDriver.c
+[; ;rotaryEncoderDriver.c: 3: static volatile int SwitchState = 0;
+[v _SwitchState `Vi ~T0 @X0 1 s ]
+[i _SwitchState
+-> 0 `i
+]
+"4
+[; ;rotaryEncoderDriver.c: 4: static volatile int EncoderState = 0;
+[v _EncoderState `Vi ~T0 @X0 1 s ]
+[i _EncoderState
+-> 0 `i
+]
+"6
+[; ;rotaryEncoderDriver.c: 6: void setSwitchState(int s)
+[v _setSwitchState `(v ~T0 @X0 1 ef1`i ]
+"7
+[; ;rotaryEncoderDriver.c: 7: {
+{
+[e :U _setSwitchState ]
+"6
+[; ;rotaryEncoderDriver.c: 6: void setSwitchState(int s)
+[v _s `i ~T0 @X0 1 r1 ]
+"7
+[; ;rotaryEncoderDriver.c: 7: {
+[f ]
+"8
+[; ;rotaryEncoderDriver.c: 8:     SwitchState = s;
+[e = _SwitchState _s ]
+"9
+[; ;rotaryEncoderDriver.c: 9: }
+[e :UE 1 ]
+}
+"10
+[; ;rotaryEncoderDriver.c: 10: void setEncoderState(int state)
+[v _setEncoderState `(v ~T0 @X0 1 ef1`i ]
+"11
+[; ;rotaryEncoderDriver.c: 11: {
+{
+[e :U _setEncoderState ]
+"10
+[; ;rotaryEncoderDriver.c: 10: void setEncoderState(int state)
+[v _state `i ~T0 @X0 1 r1 ]
+"11
+[; ;rotaryEncoderDriver.c: 11: {
+[f ]
+"12
+[; ;rotaryEncoderDriver.c: 12:     EncoderState = state;
+[e = _EncoderState _state ]
+"13
+[; ;rotaryEncoderDriver.c: 13: }
+[e :UE 2 ]
+}
+"15
+[; ;rotaryEncoderDriver.c: 15: int getEncoderChange()
+[v _getEncoderChange `(i ~T0 @X0 1 ef ]
+"16
+[; ;rotaryEncoderDriver.c: 16: {
+{
+[e :U _getEncoderChange ]
+[f ]
+"17
+[; ;rotaryEncoderDriver.c: 17:     int temp = EncoderState;
+[v _temp `i ~T0 @X0 1 a ]
+[e = _temp _EncoderState ]
+"18
+[; ;rotaryEncoderDriver.c: 18:     EncoderState = 0;
+[e = _EncoderState -> 0 `i ]
+"19
+[; ;rotaryEncoderDriver.c: 19:     return temp;
+[e ) _temp ]
+[e $UE 3  ]
+"20
+[; ;rotaryEncoderDriver.c: 20: }
+[e :UE 3 ]
+}
+"22
+[; ;rotaryEncoderDriver.c: 22: int isSwitchPressed()
+[v _isSwitchPressed `(i ~T0 @X0 1 ef ]
+"23
+[; ;rotaryEncoderDriver.c: 23: {
+{
+[e :U _isSwitchPressed ]
+[f ]
+"24
+[; ;rotaryEncoderDriver.c: 24:     if(SwitchState > 1)
+[e $ ! > _SwitchState -> 1 `i 5  ]
+"25
+[; ;rotaryEncoderDriver.c: 25:     {
+{
+"26
+[; ;rotaryEncoderDriver.c: 26:         SwitchState = 0;
+[e = _SwitchState -> 0 `i ]
+"27
+[; ;rotaryEncoderDriver.c: 27:         return 1;
+[e ) -> 1 `i ]
+[e $UE 4  ]
+"28
+[; ;rotaryEncoderDriver.c: 28:     }
+}
+[e $U 6  ]
+"29
+[; ;rotaryEncoderDriver.c: 29:     else
+[e :U 5 ]
+"30
+[; ;rotaryEncoderDriver.c: 30:     {
+{
+"31
+[; ;rotaryEncoderDriver.c: 31:         return 0;
+[e ) -> 0 `i ]
+[e $UE 4  ]
+"32
+[; ;rotaryEncoderDriver.c: 32:     }
+}
+[e :U 6 ]
+"33
+[; ;rotaryEncoderDriver.c: 33: }
+[e :UE 4 ]
+}
