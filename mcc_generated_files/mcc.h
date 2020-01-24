@@ -57,6 +57,7 @@
 #include "tmr3.h"
 #include "memory.h"
 #include "tmr1.h"
+#include "tmr0.h"
 
 
 

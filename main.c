@@ -112,7 +112,7 @@ void main(void)
     TMR5_StartTimer();
 
     setStateLEDs(currentSensorState, currentSensor);
-    
+    HC_initialize();
     
 
     while (1)

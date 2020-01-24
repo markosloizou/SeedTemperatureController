@@ -425,25 +425,25 @@
 #define DIGIT1_PIN_SetAnalogMode()      do { ANSELCbits.ANSELC1 = 1; } while(0)
 #define DIGIT1_PIN_SetDigitalMode()     do { ANSELCbits.ANSELC1 = 0; } while(0)
 
-// get/set REALAY_PIN aliases
-#define REALAY_PIN_TRIS                 TRISDbits.TRISD0
-#define REALAY_PIN_LAT                  LATDbits.LATD0
-#define REALAY_PIN_PORT                 PORTDbits.RD0
-#define REALAY_PIN_WPU                  WPUDbits.WPUD0
-#define REALAY_PIN_OD                   ODCONDbits.ODCD0
-#define REALAY_PIN_ANS                  ANSELDbits.ANSELD0
-#define REALAY_PIN_SetHigh()            do { LATDbits.LATD0 = 1; } while(0)
-#define REALAY_PIN_SetLow()             do { LATDbits.LATD0 = 0; } while(0)
-#define REALAY_PIN_Toggle()             do { LATDbits.LATD0 = ~LATDbits.LATD0; } while(0)
-#define REALAY_PIN_GetValue()           PORTDbits.RD0
-#define REALAY_PIN_SetDigitalInput()    do { TRISDbits.TRISD0 = 1; } while(0)
-#define REALAY_PIN_SetDigitalOutput()   do { TRISDbits.TRISD0 = 0; } while(0)
-#define REALAY_PIN_SetPullup()          do { WPUDbits.WPUD0 = 1; } while(0)
-#define REALAY_PIN_ResetPullup()        do { WPUDbits.WPUD0 = 0; } while(0)
-#define REALAY_PIN_SetPushPull()        do { ODCONDbits.ODCD0 = 0; } while(0)
-#define REALAY_PIN_SetOpenDrain()       do { ODCONDbits.ODCD0 = 1; } while(0)
-#define REALAY_PIN_SetAnalogMode()      do { ANSELDbits.ANSELD0 = 1; } while(0)
-#define REALAY_PIN_SetDigitalMode()     do { ANSELDbits.ANSELD0 = 0; } while(0)
+// get/set RELAY_PIN aliases
+#define RELAY_PIN_TRIS                 TRISDbits.TRISD0
+#define RELAY_PIN_LAT                  LATDbits.LATD0
+#define RELAY_PIN_PORT                 PORTDbits.RD0
+#define RELAY_PIN_WPU                  WPUDbits.WPUD0
+#define RELAY_PIN_OD                   ODCONDbits.ODCD0
+#define RELAY_PIN_ANS                  ANSELDbits.ANSELD0
+#define RELAY_PIN_SetHigh()            do { LATDbits.LATD0 = 1; } while(0)
+#define RELAY_PIN_SetLow()             do { LATDbits.LATD0 = 0; } while(0)
+#define RELAY_PIN_Toggle()             do { LATDbits.LATD0 = ~LATDbits.LATD0; } while(0)
+#define RELAY_PIN_GetValue()           PORTDbits.RD0
+#define RELAY_PIN_SetDigitalInput()    do { TRISDbits.TRISD0 = 1; } while(0)
+#define RELAY_PIN_SetDigitalOutput()   do { TRISDbits.TRISD0 = 0; } while(0)
+#define RELAY_PIN_SetPullup()          do { WPUDbits.WPUD0 = 1; } while(0)
+#define RELAY_PIN_ResetPullup()        do { WPUDbits.WPUD0 = 0; } while(0)
+#define RELAY_PIN_SetPushPull()        do { ODCONDbits.ODCD0 = 0; } while(0)
+#define RELAY_PIN_SetOpenDrain()       do { ODCONDbits.ODCD0 = 1; } while(0)
+#define RELAY_PIN_SetAnalogMode()      do { ANSELDbits.ANSELD0 = 1; } while(0)
+#define RELAY_PIN_SetDigitalMode()     do { ANSELDbits.ANSELD0 = 0; } while(0)
 
 // get/set ISOURCE1_PIN aliases
 #define ISOURCE1_PIN_TRIS                 TRISDbits.TRISD1
