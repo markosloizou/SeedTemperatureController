@@ -36,11 +36,13 @@
 // TODO Insert appropriate #include <>
 
 // ADC channels for thermometers
+
 #define AMBIENT_TMP_CHANNEL 000
 #define INTERNAL_TMP_CHANNEL 001
 #define PLATE_TMP_CHANNEL 010
 #define SOIL_TMP_CHANNEL 011
 
+/*
 //relay 
 #define RELAY_PIN 0
 #define RELAY_PORT LATD
@@ -58,12 +60,11 @@
 #define ROTARAY_A_PORT PORTD
 #define ROTARY_C_PIN 5
 #define ROTARAY_C_PORT PORTD
+*/
 
-#define STABLE_SWITCH_COUNT 50 /* 50 ms with sampling at 1000Hz*/
-#define STABLE_ENCODER_COUNT 10 // 10ms for encoder since it can handle higher RPM
 
 //Indicator LEDs
-#define LED_INTERNAL_PIN 4
+/*#define LED_INTERNAL_PIN 4
 #define LED_INTERNAL_PORT LATA
 #define LED_PLATE_PIN 5
 #define LED_PLATE_PORT LATA
@@ -104,13 +105,15 @@
 #define SEGG_PORT LATB
 #define SEGDP_PIN 2
 #define SEGDP_PORT LATB
-
+*/
 //System specifications 
 #define MCU_VOLTAGE 5.0
 
+#define STABLE_SWITCH_COUNT 50 /* 50 ms with sampling at 1000Hz*/
+#define STABLE_ENCODER_COUNT 4 // 10ms for encoder since it can handle higher RPM
 
-
-// golbal enumerations
+#define TEMPERATURE_AVERAGE_SAMPLES 10
+// global enumerations
 typedef enum{SOIL , INTERNAL, PLATE, AMBIENT} sensor;
 typedef enum{READ, SET, OFF} reading_state;
 

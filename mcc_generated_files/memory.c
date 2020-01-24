@@ -14,8 +14,8 @@
     This file provides implementations of driver APIs for MEMORY.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.77
-        Device            :  PIC18F45K20
-        Driver Version    :  2.03
+        Device            :  PIC18F45Q10
+        Driver Version    :  4.20
     The generated drivers are tested against the following:
         Compiler          :  XC8 2.05 and above
         MPLAB             :  MPLAB X 5.20
@@ -58,10 +58,12 @@
 
 uint8_t FLASH_ReadByte(uint32_t flashAddr)
 {
+    //Set TBLPTR with the target byte address
     TBLPTRU = (uint8_t)((flashAddr & 0x00FF0000) >> 16);
     TBLPTRH = (uint8_t)((flashAddr & 0x0000FF00)>> 8);
     TBLPTRL = (uint8_t)(flashAddr & 0x000000FF);
 
+    //Perform table read to move one byte from NVM to TABLAT
     asm("TBLRD");
 
     return (TABLAT);
@@ -69,145 +71,224 @@ uint8_t FLASH_ReadByte(uint32_t flashAddr)
 
 uint16_t FLASH_ReadWord(uint32_t flashAddr)
 {
-    return ((((uint16_t)FLASH_ReadByte(flashAddr+1))<<8)|(FLASH_ReadByte(flashAddr)));
+    //Set TBLPTR with the target byte address
+    NVMADRU = (uint8_t) ((flashAddr & 0x00FF0000) >> 16);
+    NVMADRH = (uint8_t) ((flashAddr & 0x0000FF00) >> 8);
+    NVMADRL = (uint8_t) (flashAddr & 0x000000FF);
+    
+    //NVMCON1.RD operations are not affected by NVMEN, ignore NVMEN
+    NVMCON1bits.RD = 1;
+    while (NVMCON1bits.RD);
+    
+    return ((((uint16_t)NVMDATH) << 8) | NVMDATL);
 }
 
-void FLASH_WriteByte(uint32_t flashAddr, uint8_t *flashRdBufPtr, uint8_t byte)
+/**
+ * @brief This routine reads one block from given address of Program Flash Memory
+ *        into device Sector RAM
+ * @return None
+ * @param [in] Starting address of a Program Flash Memory block
+ * @example This API is local to memory module and will be used by FLASH_WriteWord() API
+ */
+static void FLASH_ReadSector(uint32_t flashAddr)
 {
-    uint32_t blockStartAddr = (uint32_t)(flashAddr & ((END_FLASH-1) ^ (ERASE_FLASH_BLOCKSIZE-1)));
-    uint8_t offset = (uint8_t)(flashAddr & (ERASE_FLASH_BLOCKSIZE-1));
+    uint8_t GIEBitValue = INTCONbits.GIE;
+        
+    //Enable NVM access
+    NVMCON0bits.NVMEN = 1;
+
+    //Set NVMADR with the target word address
+    NVMADRU = (uint8_t) ((flashAddr & 0x00FF0000) >> 16);
+    NVMADRH = (uint8_t) ((flashAddr & 0x0000FF00) >> 8);
+    NVMADRL = (uint8_t) (flashAddr & 0x000000FF);
+    
+    //Disable all interrupt
+    INTCONbits.GIE = 0;
+
+    //Perform the unlock sequence
+    NVMCON2 = 0xBB;
+    NVMCON2 = 0x44;
+
+    //Start sector read and wait for the operation to complete
+    NVMCON1bits.SECRD = 1;
+    while (NVMCON1bits.SECRD);
+
+    //Restore the interrupts
+    INTCONbits.GIE = GIEBitValue;
+
+    //Disable NVM access
+    NVMCON0bits.NVMEN = 0;
+}
+
+/**
+ * @brief This routine writes one block from Sector RAM to given address of Program Flash Memory
+ * @return None
+ * @param [in] Starting address of a Program Flash Memory block
+ * @example This API is local to memory module and will be used by FLASH_WriteWord() API
+ */
+static void FLASH_WriteSector(uint32_t flashAddr)
+{
+    uint8_t GIEBitValue = INTCONbits.GIE;
+    
+    //Enable NVM access
+    NVMCON0bits.NVMEN = 1;
+
+    //Set NVMADR with the target word address
+    NVMADRU = (uint8_t) ((flashAddr & 0x00FF0000) >> 16);
+    NVMADRH = (uint8_t) ((flashAddr & 0x0000FF00) >> 8);
+    NVMADRL = (uint8_t) (flashAddr & 0x000000FF);
+
+    //Disable all interrupt
+    INTCONbits.GIE = 0;
+
+    //Perform the unlock sequence
+    NVMCON2 = 0xDD;
+    NVMCON2 = 0x22;
+
+    //Start sector write and wait for the operation to complete
+    NVMCON1bits.SECWR = 1;
+    while (NVMCON1bits.SECWR);
+
+    //Restore the interrupts
+    INTCONbits.GIE = GIEBitValue;
+
+    //Disable NVM access
+    NVMCON0bits.NVMEN = 0;
+}
+
+uint8_t sectorRAM __at(0x800);
+void FLASH_WriteWord(uint32_t flashAddr, uint16_t word)
+{
+    uint16_t *secramWordPtr = (uint16_t*) & sectorRAM;
+    uint32_t blockStartAddr = (uint32_t) (flashAddr & ((END_FLASH - 1) ^ ((ERASE_FLASH_BLOCKSIZE * 2) - 1)));
+    uint8_t offset = (uint8_t) ((flashAddr & ((ERASE_FLASH_BLOCKSIZE * 2) - 1)) / 2);
+        
+    //Read existing block into Sector RAM
+    FLASH_ReadSector(blockStartAddr);
+
+    //Erase the given block
+    FLASH_EraseBlock(blockStartAddr);
+
+    //Modify Sector RAM for the given word to be written to Program Flash Memory
+    secramWordPtr += offset;
+    *secramWordPtr = word;
+
+    //Write Sector RAM contents to given Program Flash Memory block
+    FLASH_WriteSector(blockStartAddr);
+}
+
+int8_t FLASH_WriteBlock(uint32_t flashAddr, uint16_t *flashWrBufPtr)
+{
+    uint16_t *secramWordPtr = (uint16_t*) & sectorRAM;
+    uint32_t blockStartAddr = (uint32_t) (flashAddr & ((END_FLASH - 1) ^ ((ERASE_FLASH_BLOCKSIZE * 2) - 1)));
     uint8_t i;
 
-    // Entire row will be erased, read and save the existing data
-    for (i=0; i<ERASE_FLASH_BLOCKSIZE; i++)
-    {
-        flashRdBufPtr[i] = FLASH_ReadByte((blockStartAddr+i));
-    }
-
-    // Load byte at offset
-    flashRdBufPtr[offset] = byte;
-
-    // Writes buffer contents to current block
-    FLASH_WriteBlock(blockStartAddr, flashRdBufPtr);
-}
-
-int8_t FLASH_WriteBlock(uint32_t writeAddr, uint8_t *flashWrBufPtr)
-{
-    uint32_t blockStartAddr  = (uint32_t )(writeAddr & ((END_FLASH-1) ^ (ERASE_FLASH_BLOCKSIZE-1)));
-    uint8_t GIEBitValue = INTCONbits.GIE;     // Save interrupt enable
-    uint8_t i, j, numberOfWriteBlocks;
-    uint16_t WriteBlkOffset = 0;
-    
-    // Flash write must start at the beginning of a row
-    if(writeAddr != blockStartAddr)
+    //Block write must start at the beginning of a row
+    if (flashAddr != blockStartAddr)
     {
         return -1;
     }
-    
-    // Total number of write blocks present in one erase block
-    numberOfWriteBlocks = ERASE_FLASH_BLOCKSIZE/WRITE_FLASH_BLOCKSIZE;   
 
-    // Block erase sequence
-    FLASH_EraseBlock(writeAddr); 
-
-    for(j=0; j<numberOfWriteBlocks; j++)
+    //Copy application buffer contents to Buffer RAM
+    for (i = 0; i < WRITE_FLASH_BLOCKSIZE; i++)
     {
-        // Calculate starting offset of Write Block
-        WriteBlkOffset = (uint16_t)j * WRITE_FLASH_BLOCKSIZE;
-        
-        // Block Write sequence
-        TBLPTRU = (uint8_t)(((writeAddr + WriteBlkOffset) & 0x00FF0000) >> 16);    // Load Table point register
-        TBLPTRH = (uint8_t)(((writeAddr + WriteBlkOffset) & 0x0000FF00) >> 8);
-        TBLPTRL = (uint8_t)((writeAddr + WriteBlkOffset) & 0x000000FF);
-    
-        for (i=0; i<WRITE_FLASH_BLOCKSIZE; i++)
-        {
-            TABLAT = flashWrBufPtr[WriteBlkOffset+i];  // Load data byte
-
-            if (i == (WRITE_FLASH_BLOCKSIZE-1))
-            {
-                asm("TBLWT");
-            }
-            else
-            {
-                asm("TBLWTPOSTINC");
-            }
-        }
-        
-        EECON1bits.WREN = 1;
-        INTCONbits.GIE = 0; // Disable interrupts
-        EECON2 = 0x55;
-        EECON2 = 0xAA;
-        EECON1bits.WR = 1;  // Start program
-
-        EECON1bits.WREN = 0;    // Disable writes to memory
-        INTCONbits.GIE = GIEBitValue;   // Restore interrupt enable
+        *secramWordPtr++ = flashWrBufPtr[i];
     }
+
+    //Erase the given block
+    FLASH_EraseBlock(flashAddr);
+
+    //Write Sector RAM contents to given Program Flash Memory block
+    FLASH_WriteSector(flashAddr);
 
     return 0;
 }
 
-void FLASH_EraseBlock(uint32_t baseAddr)
+void FLASH_EraseBlock(uint32_t flashAddr)
 {
-    uint8_t GIEBitValue = INTCONbits.GIE;   // Save interrupt enable
+    uint8_t GIEBitValue = INTCONbits.GIE;
+    
+    NVMCON0bits.NVMEN = 1;    // Enable NVM access
 
-    TBLPTRU = (uint8_t)((baseAddr & 0x00FF0000) >> 16);
-    TBLPTRH = (uint8_t)((baseAddr & 0x0000FF00)>> 8);
-    TBLPTRL = (uint8_t)(baseAddr & 0x000000FF);
+    //Set NVMADR with the target word address
+    NVMADRU = (uint8_t) ((flashAddr & 0x00FF0000) >> 16);
+    NVMADRH = (uint8_t) ((flashAddr & 0x0000FF00) >> 8);
+    NVMADRL = (uint8_t) (flashAddr & 0x000000FF);
 
-    EECON1bits.EEPGD = 1;
-    EECON1bits.CFGS = 0;
-    EECON1bits.WREN = 1;
-    EECON1bits.FREE = 1;
-    INTCONbits.GIE = 0; // Disable interrupts
-    EECON2 = 0x55;
-    EECON2 = 0xAA;
-    EECON1bits.WR = 1;
-    INTCONbits.GIE = GIEBitValue;   // Restore interrupt enable
+    //Disable all interrupts
+    INTCONbits.GIE = 0;
+
+    //Perform the unlock sequence
+    NVMCON2 = 0xCC;
+    NVMCON2 = 0x33;
+
+    //Start block erase and wait for the operation to complete
+    NVMCON1bits.SECER = 1;
+    while (NVMCON1bits.SECER);
+
+    //Restore the interrupts
+    INTCONbits.GIE = GIEBitValue;
+
+    //Disable NVM access
+    NVMCON0bits.NVMEN = 0;
 }
 
 /**
   Section: Data EEPROM Module APIs
 */
-
 void DATAEE_WriteByte(uint8_t bAdd, uint8_t bData)
 {
     uint8_t GIEBitValue = INTCONbits.GIE;
+    
+    //Set NVMADR with the target word address: 0x310000 - 0x3100FF
+    NVMADRU = 0x31;
+    NVMADRH = 0x00;
+    NVMADRL = (uint8_t)(bAdd & 0xFF);
 
-    EEADR = (uint8_t)(bAdd & 0xFF);
-    EEDATA = bData;
-    EECON1bits.EEPGD = 0;
-    EECON1bits.CFGS = 0;
-    EECON1bits.WREN = 1;
-    INTCONbits.GIE = 0;     // Disable interrupts
-    EECON2 = 0x55;
-    EECON2 = 0xAA;
-    EECON1bits.WR = 1;
-    // Wait for write to complete
-    while (EECON1bits.WR)
-    {
-    }
+    //Load NVMDATL with desired byte
+    NVMDATL = (uint8_t)(bData & 0xFF);
+    
+    //Enable NVM access
+    NVMCON0bits.NVMEN = 1;
+    
+    //Disable interrupts
+    INTCONbits.GIE = 0;
 
-    EECON1bits.WREN = 0;
-    INTCONbits.GIE = GIEBitValue;   // Restore interrupt enable
+    //Perform the unlock sequence
+    NVMCON2 = 0x55;
+    NVMCON2 = 0xAA;
+
+    //Start DATAEE write and wait for the operation to complete
+    NVMCON1bits.WR = 1;
+    while (NVMCON1bits.WR);
+
+    //Restore all the interrupts
+    INTCONbits.GIE = GIEBitValue;
+
+    //Disable NVM access
+    NVMCON0bits.NVMEN = 0;
 }
 
 uint8_t DATAEE_ReadByte(uint8_t bAdd)
 {
-    EEADR = (uint8_t)(bAdd & 0xFF);
-    EECON1bits.CFGS = 0;
-    EECON1bits.EEPGD = 0;
-    EECON1bits.RD = 1;
+    //Set NVMADR with the target word address: 0x310000 - 0x3100FF
+    NVMADRU = 0x31;
+    NVMADRH = 0x00;
+    NVMADRL = (uint8_t)(bAdd & 0xFF);
+    
+
+    //Start DATAEE read
+    NVMCON1bits.RD = 1;
     NOP();  // NOPs may be required for latency at high frequencies
     NOP();
 
-    return (EEDATA);
+    return (NVMDATL);
 }
 
-void MEMORY_Tasks( void )
+void MEMORY_ISR(void)
 {
     /* TODO : Add interrupt handling code */
-    PIR2bits.EEIF = 0;
+    PIR7bits.NVMIF = 0;
 }
 /**
  End of File

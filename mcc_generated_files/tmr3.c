@@ -14,8 +14,8 @@
     This source file provides APIs for TMR3.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.77
-        Device            :  PIC18F45K20
-        Driver Version    :  2.01
+        Device            :  PIC18F45Q10
+        Driver Version    :  2.11
     The generated drivers are tested against the following:
         Compiler          :  XC8 2.05 and above
         MPLAB 	          :  MPLAB X 5.20
@@ -52,9 +52,10 @@
 #include "tmr3.h"
 #include "../rotaryEncoderDriver.h"
 #include "../global_defines.h"
+#include "pin_manager.h"
 
 /**
-  Section: Global Variable Definitions
+  Section: Global Variables Definitions
 */
 volatile uint16_t timer3ReloadVal;
 void (*TMR3_InterruptHandler)(void);
@@ -67,26 +68,35 @@ void TMR3_Initialize(void)
 {
     //Set the Timer to the options selected in the GUI
 	
-	// TMR3H 255; 
-		TMR3H = 0xFF;
+    //T3GE disabled; T3GTM disabled; T3GPOL low; T3GGO done; T3GSPM disabled; 
+    T3GCON = 0x00;
 	
-	// TMR3L 6; 
-		TMR3L = 0x06;
+    //GSS T3G_pin; 
+    T3GATE = 0x00;
+
+    //CS HFINTOSC; 
+    T3CLK = 0x03;
+
+    //TMR3H 248; 
+    TMR3H = 0xF8;
+
+    //TMR3L 48; 
+    TMR3L = 0x30;
 
     // Load the TMR value to reload variable
-    timer3ReloadVal=TMR3;
+    timer3ReloadVal=(uint16_t)((TMR3H << 8) | TMR3L);
 
     // Clearing IF flag before enabling the interrupt.
-    PIR2bits.TMR3IF = 0;
+    PIR4bits.TMR3IF = 0;
 
     // Enabling TMR3 interrupt.
-    PIE2bits.TMR3IE = 1;
+    PIE4bits.TMR3IE = 1;
 
     // Set Default Interrupt Handler
     TMR3_SetInterruptHandler(TMR3_DefaultInterruptHandler);
 
-    // T3CKPS 1:1; TMR3CS FOSC/4; nT3SYNC synchronize; TMR3ON enabled; T3CCP1 Timer1 clk src; RD16 disabled; 
-    T3CON = 0x01;
+    // CKPS 1:2; nT3SYNC synchronize; TMR3ON enabled; T3RD16 disabled; 
+    T3CON = 0x11;
 }
 
 void TMR3_StartTimer(void)
@@ -107,7 +117,7 @@ uint16_t TMR3_ReadTimer(void)
     uint8_t readValHigh;
     uint8_t readValLow;
 	
-    T3CONbits.RD16 = 1;
+    T3CONbits.T3RD16 = 1;
 	
     readValLow = TMR3L;
     readValHigh = TMR3H;
@@ -126,7 +136,7 @@ void TMR3_WriteTimer(uint16_t timerVal)
 
         // Write to the Timer3 register
         TMR3H = (timerVal >> 8);
-        TMR3L = (uint8_t) timerVal;
+        TMR3L = timerVal;
 
         // Start the Timer after writing to the register
         T3CONbits.TMR3ON =1;
@@ -135,7 +145,7 @@ void TMR3_WriteTimer(uint16_t timerVal)
     {
         // Write to the Timer3 register
         TMR3H = (timerVal >> 8);
-        TMR3L = (uint8_t) timerVal;
+        TMR3L = timerVal;
     }
 }
 
@@ -144,22 +154,31 @@ void TMR3_Reload(void)
     TMR3_WriteTimer(timer3ReloadVal);
 }
 
+void TMR3_StartSinglePulseAcquisition(void)
+{
+    T3GCONbits.T3GGO = 1;
+}
+
+uint8_t TMR3_CheckGateValueStatus(void)
+{
+    return (T3GCONbits.T3GVAL);
+}
+
 void TMR3_ISR(void)
 {
 
     // Clear the TMR3 interrupt flag
-    PIR2bits.TMR3IF = 0;    
+    PIR4bits.TMR3IF = 0;
     TMR3_WriteTimer(timer3ReloadVal);
 
     // ticker function call;
-    // ticker is 1 -> Callback function gets called every time this ISR executes
+    // ticker is 1 -> Callback function gets called everytime this ISR executes
     TMR3_CallBack();
 }
 
 void TMR3_CallBack(void)
 {
     // Add your custom callback code here
-
     if(TMR3_InterruptHandler)
     {
         TMR3_InterruptHandler();
@@ -174,31 +193,54 @@ void TMR3_DefaultInterruptHandler(void){
     // add your TMR3 interrupt custom code
     // or set custom function using TMR3_SetInterruptHandler()
     static int SwitchCount = 0;
-    static int encoderA1Count = 0;
-    static int encoderC1Count = 0; 
+    static int encoderCount = 0;
     
     static int switchPreviousStableState = 0;
-    static int encoderA1PreviousStableState = 0;
-    static int encoderC1PreviousStableState = 0;
+    static int lastA1 = 0;
     
     int currentA1, currentC1;
     
-    if(switchPreviousStableState != ((ROTARY_SWITCH_PORT & (1 << ROTARY_SWITCH_PIN)) >> ROTARY_SWITCH_PIN)  ) 
+    if(switchPreviousStableState != ROTARY_SWITCH_PIN_GetValue()  ) 
     {
         SwitchCount++; 
-        if(SwitchCount == STABLE_SWITCH_COUNT)
+        if(SwitchCount >= STABLE_SWITCH_COUNT)
         {
             //changed state here
             if(switchPreviousStableState == 0) 
             {
                 setSwitchState(1);
             }
-            switchPreviousStableState = ((ROTARY_SWITCH_PORT & (1 << ROTARY_SWITCH_PIN)) >> ROTARY_SWITCH_PIN);
+            SwitchCount = 0;
+            switchPreviousStableState = ROTARY_SWITCH_PIN_GetValue() ;
         }
+    } else {
+        SwitchCount = 0;
     }
     
-    currentA1 = (ROTARAY_A_PORT & (1 << ROTARY_A_PIN)) >> ROTARY_A_PIN; 
-    currentC1 = (ROTARAY_C_PORT & (1 << ROTARY_C_PIN)) >> ROTARY_C_PIN; 
+    currentA1 = ROTARY_A_PIN_GetValue();
+    currentC1 = ROTARY_C_PIN_GetValue(); 
+    
+    if(currentA1 != lastA1 && currentA1 == 1)
+    {
+        encoderCount++; 
+        if(currentC1 != currentA1 && encoderCount >= STABLE_ENCODER_COUNT)
+        {
+            //rotating counterclockwise >
+            lastA1 = currentA1;
+            encoderCount = 0;
+            setEncoderState(1);
+        }
+        else if(encoderCount >= STABLE_ENCODER_COUNT)
+        {
+            //rotating clockwise
+            lastA1 = currentA1  ; 
+            encoderCount = 0;
+            setEncoderState(-1);
+        }
+    } else
+    {
+        encoderCount = 0;
+    }
     
     
 }

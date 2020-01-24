@@ -8,11 +8,6 @@
 #ifndef ROTARYENCODERDRIVER_H
 #define	ROTARYENCODERDRIVER_H
 
-int previousSwitchState = 0;
-int previousA1State = 0;
-int previousC1State = 1; 
-
-
 int getEncoderChange();
 int isSwitchPressed();
 

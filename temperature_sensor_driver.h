@@ -41,7 +41,7 @@
 #define VZEROC 500.0 
 #define TC 10.0
 
-float readTemperatureSensor(unsigned int channel);
+int readTemperatureSensor(unsigned int channel);
 
 
 // Comment a function and leverage automatic documentation with slash star star

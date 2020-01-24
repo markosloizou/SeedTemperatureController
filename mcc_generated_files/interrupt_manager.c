@@ -16,7 +16,7 @@
     all modules selected in the GUI.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.77
-        Device            :  PIC18F45K20
+        Device            :  PIC18F45Q10
         Driver Version    :  2.03
     The generated drivers are tested against the following:
         Compiler          :  XC8 2.05 and above or later
@@ -52,7 +52,7 @@
 void  INTERRUPT_Initialize (void)
 {
     // Disable Interrupt Priority Vectors (16CXXX Compatibility Mode)
-    RCONbits.IPEN = 0;
+    INTCONbits.IPEN = 0;
 }
 
 void __interrupt() INTERRUPT_InterruptManager (void)
@@ -60,13 +60,17 @@ void __interrupt() INTERRUPT_InterruptManager (void)
     // interrupt handler
     if(INTCONbits.PEIE == 1)
     {
-        if(PIE2bits.TMR3IE == 1 && PIR2bits.TMR3IF == 1)
+        if(PIE4bits.TMR5IE == 1 && PIR4bits.TMR5IF == 1)
+        {
+            TMR5_ISR();
+        } 
+        else if(PIE4bits.TMR3IE == 1 && PIR4bits.TMR3IF == 1)
         {
             TMR3_ISR();
         } 
-        else if(PIE1bits.TMR2IE == 1 && PIR1bits.TMR2IF == 1)
+        else if(PIE4bits.TMR1IE == 1 && PIR4bits.TMR1IF == 1)
         {
-            TMR2_ISR();
+            TMR1_ISR();
         } 
         else
         {

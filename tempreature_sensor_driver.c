@@ -7,29 +7,30 @@
 
 #include <xc.h>
 #include "mcc_generated_files/mcc.h"
+#include "mcc_generated_files/adcc.h"
 #include "global_defines.h"
 #include "temperature_sensor_driver.h"
 
-static unsigned int ADCRead();
+static unsigned int ADCRead(unsigned int channel);
 
-float readTemperatureSensor(unsigned int channel)
+int readTemperatureSensor(unsigned int channel)
 {
-    ADC_SelectChannel(channel);
-    unsigned int ADCvalue = ADCRead();
+
+    unsigned int ADCvalue = ADCRead(channel);
     
     float temp =0.0; 
     float Vout = (float) ADCvalue * MCU_VOLTAGE * 1000 / 1024.0 ; //10 bit in mv
     temp = (Vout - VZEROC)/TC;
     
-    return temp;
+    return (int)temp*10; //measure in milli Celsius
 }
 
-static unsigned int ADCRead()
+static unsigned int ADCRead(unsigned int channel)
 {
-    ADC_StartConversion();
-    while(!ADC_IsConversionDone())
+    ADCC_StartConversion(channel);
+    while(!ADCC_IsConversionDone())
     {
         
     }
-    return ADC_GetConversionResult();
+    return ADCC_GetConversionResult();
 }

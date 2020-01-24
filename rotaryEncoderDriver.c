@@ -9,7 +9,7 @@ void setSwitchState(int s)
 }
 void setEncoderState(int state)
 {
-    EncoderState = state; 
+    EncoderState += state; 
 }
 
 int getEncoderChange()

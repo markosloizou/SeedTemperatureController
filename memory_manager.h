@@ -45,13 +45,11 @@
     int max_plate_temp;
     int max_internal_temp;
  */
-void readSoilMax(int * temp);
-void readSoilMin(int * temp);
+void readSoilTempGoal(int * temp);
 void readPlateMax(int * temp);
 void readInternalMax(int * temp);
 
-void saveSoilMax(int * temp);
-void saveSoilMin(int * temp);
+void saveSoilTempGoal(int * temp);
 void savePlateMax(int * temp);
 void saveInternalMax(int * temp);
 

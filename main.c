@@ -14,7 +14,7 @@
     This header file provides implementations for driver APIs for all modules selected in the GUI.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.77
-        Device            :  PIC18F45K20
+        Device            :  PIC18F45Q10
         Driver Version    :  2.00
 */
 
@@ -47,26 +47,33 @@
 #include "segmentDisplayDriver.h"
 #include "temperature_sensor_driver.h"
 #include "stateLEDDriver.h"
+#include "HeatingElementController.h"
+#include "rotaryEncoderDriver.h"
+#include "StateController.h"
+
 /*
                          Main application
  */
 
-static int max_soil_temp;
-static int min_soil_temp; 
+static int soil_temp_goal;
 
 static int max_plate_temp;
 static int max_internal_temp;
 
-static int ambient_temp, plate_temp, soil_temp, internal_temp;
+int ambient_temp, plate_temp, soil_temp, internal_temp;
 
 
-int PrintTemp(sensor currentSensor, reading_state state);
+void PrintTemp(sensor currentSensor, reading_state state);
+
+sensor currentSensor = AMBIENT; 
+reading_state currentSensorState = READ;
 
 void main(void)
 {
     
     // Initialize the device
     SYSTEM_Initialize();
+    ADCC_Initialize();
 
     // If using interrupts in PIC18 High/Low Priority Mode you need to enable the Global High and Low Interrupts
     // If using interrupts in PIC Mid-Range Compatibility Mode you need to enable the Global and Peripheral Interrupts
@@ -84,10 +91,13 @@ void main(void)
     // Disable the Peripheral Interrupts
     //INTERRUPT_PeripheralInterruptDisable();
     
-    readSoilMax(&max_soil_temp);
-    readSoilMin(&min_soil_temp);
+    readSoilTempGoal(&soil_temp_goal);
     readPlateMax(&max_plate_temp);
     readInternalMax(&max_internal_temp);
+    
+    HC_setSoilTempGoil(soil_temp_goal);    
+    HC_setMaxPlateTemp(max_plate_temp);
+    HC_setMaxInternalTemp(max_internal_temp);
     
     ambient_temp = readTemperatureSensor(AMBIENT_TMP_CHANNEL);
     plate_temp = readTemperatureSensor(PLATE_TMP_CHANNEL);
@@ -97,27 +107,59 @@ void main(void)
     setDisplayTemperature(ambient_temp);
     openDisplay();
     
-    TMR2_StartTimer();
-    
-    sensor currentSensor = AMBIENT; 
-    reading_state currentSensorState = READ; 
-    
+    TMR1_StartTimer();
+    TMR3_StartTimer();
+    TMR5_StartTimer();
+
     setStateLEDs(currentSensorState, currentSensor);
+    
+    
 
     while (1)
     {
         // Add your application code
-        ambient_temp = readTemperatureSensor(AMBIENT_TMP_CHANNEL);
-        plate_temp = readTemperatureSensor(PLATE_TMP_CHANNEL);
-        internal_temp = readTemperatureSensor(INTERNAL_TMP_CHANNEL);
-        soil_temp = readTemperatureSensor(SOIL_TMP_CHANNEL);
+        HC_regulateTemperature(soil_temp, plate_temp, internal_temp);
+        
+        if(isSwitchPressed())
+        {
+            //change state
+            changeState(&currentSensor, &currentSensorState);
+        }
+        
+        int change = getEncoderChange();
+        if(change && currentSensorState == SET)
+        {
+            switch(currentSensor)
+            {
+                case INTERNAL:
+                    max_internal_temp += change;
+                    HC_setMaxInternalTemp(max_internal_temp);
+                    saveInternalMax(&max_internal_temp);
+                    PrintTemp(currentSensor, currentSensorState);
+                    break;
+                case PLATE:
+                    max_plate_temp += change; 
+                    HC_setMaxPlateTemp(max_plate_temp);
+                    savePlateMax(&max_plate_temp);
+                    PrintTemp(currentSensor, currentSensorState);
+                    break;
+                case SOIL:
+                    soil_temp_goal += change;
+                    HC_setSoilTempGoil(soil_temp_goal);
+                    saveSoilTempGoal(&soil_temp_goal);
+                    PrintTemp(currentSensor, currentSensorState);
+                    break;
+                default:
+                    break;
+            }
+        }
         
         
     }
 }
 
 
-int PrintTemp(sensor currentSensor, reading_state state)
+void PrintTemp(sensor currentSensor, reading_state state)
 {
     if(state == OFF)
     {
@@ -151,7 +193,7 @@ int PrintTemp(sensor currentSensor, reading_state state)
     {
         if(currentSensor == SOIL)
         {
-            setDisplayTemperature(max_soil_temp);
+            setDisplayTemperature(soil_temp_goal);
         }
         else if(currentSensor == PLATE)
         {

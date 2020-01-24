@@ -1,5 +1,6 @@
 #include "segmentDisplayDriver.h"
 #include "global_defines.h"
+#include "mcc_generated_files/pin_manager.h"
 
 static void printCharacter(int n); // n must be between 0 and 9
 static void setDP();
@@ -36,22 +37,21 @@ void printTemperature()
     {
         clearDisplay();
         //clear other digits
-        DIGIT2_PORT &= !(1<<DIGIT2_PIN);
-        DIGIT3_PORT &= !(1<<DIGIT3_PIN);
+        DIGIT2_PIN_SetLow();
+        DIGIT3_PIN_SetLow();
         //set digit
-        DIGIT1_PORT |= (1<<DIGIT1_PIN);
+        DIGIT1_PIN_SetHigh();
         printCharacter(temperature/100);
         digit++;
     }
     else if(digit == 2)
     {
         clearDisplay();
-        //clear other digits
-        DIGIT1_PORT &= !(1<<DIGIT1_PIN);
-        DIGIT3_PORT &= !(1<<DIGIT3_PIN);
-        
+       //clear other digits
+        DIGIT1_PIN_SetLow();
+        DIGIT3_PIN_SetLow();
         //set digit
-        DIGIT2_PORT |= (1<<DIGIT2_PIN);
+        DIGIT2_PIN_SetHigh();
         
         int t = temperature / 10; 
         printCharacter(t%10);
@@ -63,10 +63,11 @@ void printTemperature()
     {
         clearDisplay();
         //clear digits
-        DIGIT1_PORT &= !(1<<DIGIT1_PIN);
-        DIGIT2_PORT &= !(1<<DIGIT2_PIN);
+        //clear other digits
+        DIGIT1_PIN_SetLow();
+        DIGIT2_PIN_SetLow();
         //set digit
-        DIGIT3_PORT |= (1<<DIGIT3_PIN);
+        DIGIT3_PIN_SetHigh();
         
         printCharacter(temperature%10);
         digit++;
@@ -78,73 +79,73 @@ static void printCharacter(int n)
     switch(n)
     {
         case 0:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
-            SEGE_PORT |= (1<<SEGE_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGE_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
             break;
         case 1:
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
             break;
         case 2:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
-            SEGE_PORT |= (1<<SEGE_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGE_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
             break;
         case 3:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
             break;
         case 4:
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
             break;
         case 5:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
+            SEGA_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
             break;
         case 6:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
-            SEGE_PORT |= (1<<SEGE_PIN);
+            SEGA_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGE_PIN_SetHigh();
             break;
         case 7:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
             break;
         case 8:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
-            SEGE_PORT |= (1<<SEGE_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGE_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
             break;
         case 9:
-            SEGA_PORT |= (1<<SEGA_PIN);
-            SEGB_PORT |= (1<<SEGB_PIN);
-            SEGC_PORT |= (1<<SEGC_PIN);
-            SEGD_PORT |= (1<<SEGD_PIN);
-            SEGF_PORT |= (1<<SEGF_PIN);
-            SEGG_PORT |= (1<<SEGG_PIN);
+            SEGA_PIN_SetHigh();
+            SEGB_PIN_SetHigh();
+            SEGC_PIN_SetHigh();
+            SEGD_PIN_SetHigh();
+            SEGF_PIN_SetHigh();
+            SEGG_PIN_SetHigh();
             break;
         default:
             break;
@@ -153,19 +154,18 @@ static void printCharacter(int n)
 
 static void setDP()
 {
-    SEGDP_PORT |= (1<<SEGDP_PIN);
+    SEGDP_PIN_SetHigh();
 }
 
 static void clearDisplay()
 {
-    SEGA_PORT &= !(1<<SEGA_PIN);
-    SEGB_PORT &= !(1<<SEGB_PIN);
-    SEGC_PORT &= !(1<<SEGC_PIN);
-    SEGD_PORT &= !(1<<SEGD_PIN);
-    SEGE_PORT &= !(1<<SEGE_PIN);
-    SEGF_PORT &= !(1<<SEGF_PIN);
-    SEGG_PORT &= !(1<<SEGG_PIN);
-    SEGDP_PORT &= !(1<<SEGDP_PIN);
+   SEGA_PIN_SetLow();
+    SEGB_PIN_SetLow();
+    SEGC_PIN_SetLow();
+    SEGD_PIN_SetLow();
+    SEGE_PIN_SetLow();
+    SEGF_PIN_SetLow();
+    SEGG_PIN_SetLow();
 
 }
 
